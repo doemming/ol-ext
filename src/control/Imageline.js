@@ -21,6 +21,7 @@ import ol_ext_getMapCanvas from '../util/getMapCanvas.js'
  *	@param {number} options.useExtent only show feature in the current extent
  *	@param {boolean} options.hover select image on hover, default false
  *	@param {string|boolean} options.linkColor link color or false if no link, default false
+ *	@param {function} options.prepareFeatures a function to prepare feature list before adding to the control. It gets a feature array and returns a feature array. By default it returns the provided features. Can used to prepare the feature list before adding to the control, e.g. for sorting or filtering.
  */
 var ol_control_Imageline = class olcontrolImageline extends ol_control_Control {
   constructor(options) {
@@ -66,6 +67,9 @@ var ol_control_Imageline = class olcontrolImageline extends ol_control_Control {
       this._getImage = options.getImage;
     if (typeof (options.getTitle) === 'function')
       this._getTitle = options.getTitle;
+
+    if (typeof (options.prepareFeatures) === 'function')
+      this._prepareFeatures = options.prepareFeatures	
 
     this.set('maxFeatures', options.maxFeatures || 100);
     this.set('linkColor', options.linkColor || false);
@@ -176,6 +180,15 @@ var ol_control_Imageline = class olcontrolImageline extends ol_control_Control {
   _getTitle( /* f */) {
     return '';
   }
+  
+   /** Default function returns the provided feature array. 
+   * @param {Array<ol.Feature>} features
+   * @private
+   */
+  _prepareFeatures(features) {
+    return features;
+  }
+  
   /**
    * Get features
    * @return {Array<ol.Feature>}
@@ -189,10 +202,10 @@ var ol_control_Imageline = class olcontrolImageline extends ol_control_Control {
     sources.forEach(function (s) {
       if (features.length < this.get('maxFeatures')) {
         if (!this.get('useExtent') || !map) {
-          features.push(s.getFeatures());
+          features.push(this._prepareFeatures(s.getFeatures()));
         } else {
           var extent = map.getView().calculateExtent(map.getSize());
-          features.push(s.getFeaturesInExtent(extent));
+          features.push(this._prepareFeatures(s.getFeaturesInExtent(extent)));
         }
       }
     }.bind(this));
